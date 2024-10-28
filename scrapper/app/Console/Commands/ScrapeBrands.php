@@ -39,29 +39,45 @@ class ScrapeBrands extends Command
      */
     public function handle()
     {
+        Brand::truncate();
 
         $this->output->info('Looking for brands.');
 
-        $htmlSource = browseUrl('https://www.autoevolution.com/cars/');
+        // $htmlSource = browseUrl('https://www.autoevolution.com/cars/');
+        $htmlSource = browseUrl('https://www.auto-data.net/fr/allbrands');
 
         $pageDom = str_get_html($htmlSource);
 
-        $brandDOMs = $pageDom->find('.carman');
+        // $brandDOMs = $pageDom->find('.carman');
+        $brandDOMs = $pageDom->find('.marki_blok');
 
         $progressbar = $this->output->createProgressBar(count($brandDOMs));
         $progressbar->start();
 
         foreach ($brandDOMs as $brandDOM) {
 
-            $url = trim($brandDOM->find('[itemprop="url"]')[0]->content ?? null);
-            $name = trim($brandDOM->find('[itemprop="name"]')[0]->plaintext ?? null);
-            $logo = trim($brandDOM->find('[itemprop="logo"]')[0]->src ?? null);
+            // $url = trim($brandDOM->find('[itemprop="url"]')[0]->content ?? null);
+            // $name = trim($brandDOM->find('[itemprop="name"]')[0]->plaintext ?? null);
+            // $logo = trim($brandDOM->find('[itemprop="logo"]')[0]->src ?? null);
+
+            $url = trim($brandDOM->getAttribute('href') ?? null);
+            $name = trim($brandDOM->getAttribute('title') ?? null);
+            $logo = trim($brandDOM->find('img')[0]->src ?? null);
+
+            $name = explode(' - ', $name)[0];
+            $url = 'https://www.auto-data.net'. $url;
+            // $logo = 'https://www.auto-data.net'. $logo;
+
+            // Logos from https://www.carlogos.org
+            $logo = 'https://www.carlogos.org/car-logos/'. strtolower($name) .'-logo.png';
+
+
 
             Brand::updateOrCreate(
                 ['url_hash' => \hash('crc32', $url)],
                 [
                     'url' => $url,
-                    'name' => $name,
+                    'name' => strtoupper($name),
                     'logo' => $logo,
                 ]);
 
